@@ -7,7 +7,7 @@ variable "aws_secret_key" {
 }
 
 variable "key_name" {
-  default = "EC2_User"
+  default = "EC2_East"
 }
 
 variable "region" {
