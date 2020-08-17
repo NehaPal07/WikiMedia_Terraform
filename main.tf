@@ -95,32 +95,41 @@ resource "aws_instance" "MediaWiki" {
   instance_type          = "t2.micro"
   subnet_id              = aws_subnet.subnet1.id
   vpc_security_group_ids = [aws_security_group.aws_sg.id]
- # key_name               = var.key_name
- # public_IP              = var.public_ip
+  key_name               = var.key_name
 
 
+  user_data = <<EOF
+                #! /bin/bash
+                sudo yum update -y
+                sudo yum install -y php
+                sudo yum install -y php-mysql
+                sudo yum install -y php-gd
+                sudo yum install -y php-xml
+                sudo yum install -y mariadb-server
+                sudo yum install -y mariadb
+                sudo yum install -y php-mbstring
+                sudo yum install -y httpd
 
-  connection  {
+                sudo systemctl start mariadb
+                mysql_secure_installation
 
-    type        = "ssh"
-    host        = self.public_ip
-    user        = "ec2-user"
-   # private_key = file(var.private_key_path)
-   }
+                sudo systemctl enable mariadb
+                sudo systemctl enable httpd
 
-  provisioner "remote-exec" {
-       inline = [
-          "sudo yum install nginx -y",
-          "sudo service nginx start",
-          "echo '<html><head><title> Green Team server </title></head><body><h1> Hello Nginx2 through Terraform</h1></body></html>'",
-         ]
-     }
+                sudo yum install wget unzip
+
+                sudo wget https://releases.wikimedia.org/mediawiki/1.34/mediawiki-1.34.2.tar.gz
+                sudo tar -zxf /home/ec2-user/mediawiki-1.34.2.tar.gz
+                sudo cp -Rf mediawiki-1.34.2 /var/www
+                sudo ln -s mediawiki-1.34.2/ mediawiki
+                sudo chown -R apache:apache /var/www/mediawiki-1.34.2
+                sudo service httpd restart
+                sudo firewall-cmd --permanent --zone=public --add-service=http
+                sudo firewall-cmd --permanent --zone=public --add-service=https
+                sudo systemctl restart firewalld
+           EOF
+
   tags = {
-    Name = "Media-Instance"
-  }
-
+    Name = "Ec2-User"
 }
-
-output "Terra-Ansible1" {
-  value = aws_instance.MediaWiki.public_ip
 }
